@@ -72,3 +72,6 @@ class InputFileClass( object ):
            self.originalShape, self.afterEnergy, self.afterPileup, \
            self.loadTime, self.filterTime, self.sortTime )
     return outstr
+
+  def __del__( self ):
+    self.hf.close()
