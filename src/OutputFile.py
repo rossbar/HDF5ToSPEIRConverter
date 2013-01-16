@@ -35,7 +35,14 @@ class OutputFileClass( object ):
                     ('Trig', '<u2'), ('Chan', '<u2'), ('Side', '|u1'),\
                     ('DetNum', '|u1'), ('Signal', np.uint32, (siglen,)) ])
     # Create the spier table
-    self.table = self.hf.createTable( '/SPEIR', 'evData', spierout,\
+    self.table = self.hf.createTable( '/SPEIR', 'evData', self.spierout,\
                  expectedrows=exprows )
     # Make the input file an attribute
     self.inputFile = inputFile
+
+  def __str__ ( self ):
+    return str( self.hf )
+
+  def __del__( self ):
+    self.hf.flush()
+    self.hf.close()
