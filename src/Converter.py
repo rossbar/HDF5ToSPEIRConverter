@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 # User-defined
 from InputFile import InputFileClass
@@ -12,30 +13,47 @@ class ConverterClass( object ):
        time. The whole reason for doing this is because dealing with the 
        rawdata is very RAM intensive. For computers with less memory, use a
        smaller chunksize (1 million should be okay for 16 GB machines).'''
+    self.VERBOSE = False
     self.hfin = inputObj.hf
+    self.hfout = outputObj.hf
     self.edata = inputObj.edata
     self.outTable = outputObj.table
     # Figure out chunking
     self.chunked = chunked	# Default is to do by chunking, but not req'd
-    self.starts = np.arange( 0, self.hfin.edata.shape[0], chunksize )
+    self.starts = np.arange( 0, self.edata.shape[0], chunksize )
     self.nchunks = len( self.starts )
-    self.ends = np.array( list(self.starts[1:]) + \
-                [ self.hfin.edata.shape[0] ] )
+    self.ends = np.array( list(self.starts[1:]) + [ self.edata.shape[0] ] )
+    self.chunkTimes = []
 
   def convertAllData( self ):
     '''Top-level function: converts all data from the input file to the
        speir format and writes it to the table in the output file.'''
     if not self.chunked:	# Do the whole file at once      
+      tic = time.time()
       self.rdata = self.hfin.root.RawData.read()
+      self.rmin = 0
       self.convertChunk( self.edata, self.rdata )
+      toc = time.time()
+      self.chunkTimes.append( toc - tic )
     else:	# Do it the chunked way
       # Loop over the chunks
+      self.gen = 1
       for s,e in zip( self.starts, self.ends ):
         # Chunk of edata
+        if self.VERBOSE: print 'Processing chunk %s out of %s'\
+                               %( self.gen, self.nchunks )
+        tic = time.time()
         edata = self.edata[ s:e ]
-        #NOTE: START HERE! GET RDATA LIMS (edata.rid.min(), edata.rid.max())
-        # and use them to load rdata. Don't forget that row['signal'] should
-        # now be self.rdata[edata[i][6] - rdatamin,: ]
+        self.rmin, self.rmax = edata.rid.min(), edata.rid.max()+1
+        rdata = self.hfin.root.RawData.read(start=self.rmin, stop=self.rmax)
+        self.convertChunk( edata, rdata )
+        toc = time.time()
+        self.chunkTimes.append( toc - tic )
+        self.gen += 1
+    # Cleanup
+    self.hfin.close()
+    self.hfout.flush()
+    self.hfout.close()
 
   def convertChunk( self, edata, rdata ):
     '''Convert the input from the given data chunk to speirtype and write it
@@ -53,7 +71,7 @@ class ConverterClass( object ):
       row['Chan']   = self.chan[i]
       row['Side']   = self.side[i]
       row['DetNum'] = self.detNum[i]
-      row['Signal'] = self.rdata[ edata[i][6],: ]
+      row['Signal'] = self.rdata[ (edata[i][6]-self.rmin),: ]
       row.append()
     self.outTable.flush()
 

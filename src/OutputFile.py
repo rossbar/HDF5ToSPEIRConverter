@@ -44,5 +44,6 @@ class OutputFileClass( object ):
     return str( self.hf )
 
   def __del__( self ):
-    self.hf.flush()
-    self.hf.close()
+    if self.hf.isopen:
+      self.hf.flush()
+      self.hf.close()
