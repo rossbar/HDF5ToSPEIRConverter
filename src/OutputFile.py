@@ -33,7 +33,7 @@ class OutputFileClass( object ):
     exprows, siglen = inputFile.hf.root.RawData.shape
     self.spierout = np.dtype([('Time', '<u8'), ('Energy', '<f4'),\
                     ('Trig', '<u2'), ('Chan', '<u2'), ('Side', '|u1'),\
-                    ('DetNum', '|u1'), ('Signal', np.uint32, (siglen,)) ])
+                    ('DetNum', '|u1'), ('Signal', np.int32, (siglen,)) ])
     # Create the spier table
     self.table = self.hf.createTable( '/SPEIR', 'evData', self.spierout,\
                  expectedrows=exprows )
