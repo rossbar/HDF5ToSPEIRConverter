@@ -1,3 +1,5 @@
+#! /home/ross/epd/bin/python
+
 import numpy as np
 import sys
 import os
@@ -56,7 +58,7 @@ def parseInput( argv ):
   chunked = True
   chunksize = 1e6
   # Parse
-  argc = len( argList )
+  argc = len( argv )
   if argc > 4:
     print 'Too many input arguments! Exiting.'
     sys.exit()
@@ -96,20 +98,41 @@ def getTargetsFromDir( dirname ):
     else: targets.append( dirname + f )
   return targets
 
-def translateFile( fpath ):
+def translateFile( fpath, chunked=True, chunksize=1e6 ):
   '''Create inputfile, outputfile, and converter objects. Call the converter
      method to translate between the input and output if no errors encountered.
      '''
   hfin = InputFileClass( fpath, verbose=True )
   hfout = OutputFileClass( hfin )
-  converter = ConverterClass( hfin, hfout )
+  converter = ConverterClass( hfin, hfout, chunked=chunked,\
+                              chunksize=chunksize )
   converter.VERBOSE = True
   converter.convertAllData()
 
-def translateDirectory( dirname ):
+def translateDirectory( dirname, chunked=True, chunksize=1e6 ):
   '''Translate every file in dirname that has an .h5 ending'''
   targets = getTargetsFromDir( dirname )
+  if len(targets) == 0:
+    print 'No files to translate found in %s' %(dirname)
+    sys.exit()
   for fpath in targets:
     print 'Now translating: %s\n' %( fpath.split('/')[-1] )
-    translateFile( fpath )
+    try: translateFile( fpath, chunked, chunksize )
+    except:
+      print 'Error in file translation. Skipping file: %s' %(fpath)
     print
+
+if __name__ == '__main__':
+  chunked, chunksize = parseInput( sys.argv )
+  target = sys.argv[-1]
+  # Check that the file exists
+  if not os.path.exists( target ):
+    print 'TARGET file or directory does not exist. Exiting.'
+    sys.exit()
+  if os.path.isfile( target ):
+    translateFile( target, chunked, chunksize )
+  elif os.path.isdir( target ):
+    translateDirectory( target, chunked, chunksize )
+  else:
+    print 'TARGET type not recognized (must be a file or directory)'
+    sys.exit()
